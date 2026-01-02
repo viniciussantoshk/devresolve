@@ -1,7 +1,7 @@
 [
     {
         "version": "v1.1",
-        "date": "02/01/2025",
+        "date": "02/01/2026",
         "changes": [
             "Agora é possível visualizar o nome e o código do produto nos detalhes da apólice.",
             "Implementação de etiquetas coloridas para facilitar a identificação: Laranja para 'Auto Individual' e Azul para 'Auto Frota'.",
