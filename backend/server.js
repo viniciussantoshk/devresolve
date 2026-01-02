@@ -248,7 +248,7 @@ app.get('/api/apolices', async (req, res) => {
                         VeiculoPlaca AS Placa, VeiculoChassi AS Chassi, WasDeleted, 
                         VeiculoPlanosCodigo AS PlanoCod, VeiculoEndosso AS Endosso, 
                         VeiculoCombustivel AS Comb, VeiculoCor AS Cor, VeiculoItem AS Item, 
-                        VeiculoCodigoFipe AS Fipe, VeiculoAnoFabricacao AS AnoF, 
+                        VeiculoFipeCodigo AS Fipe, VeiculoAnoFabricacao AS AnoF, 
                         VeiculoAnoModelo AS AnoM, VeiculoTipo AS TipoV, 'Automovel' AS type,
                         BeneficiarioLogradouro AS [End], BeneficiarioBairro AS Bairro, 
                         BeneficiarioCidade AS Cid, BeneficiarioEstado AS Est,
