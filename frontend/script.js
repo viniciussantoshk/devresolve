@@ -1,16 +1,15 @@
 // =====================================================================
 // CONFIGURAÇÃO DA API
 // =====================================================================
-// Em produção, usamos o caminho relativo para que o Nginx/Apache 
-// encaminhe para o backend corretamente.
+// Em produção, utilizamos o caminho relativo. O Nginx no AlmaLinux 
+// deve estar configurado para redirecionar /api para o backend (porta 3000).
 const API_BASE_URL = '/api/apolices';
 
 // =====================================================================
 // LÓGICA DA APLICAÇÃO
 // =====================================================================
 
-// 1. Definição segura da variável global para evitar erros de redeclaração
-// e garantir que os dados fiquem acessíveis ao Modal.
+// Definição global única para evitar o erro de redeclaração
 if (typeof window.currentSearchData === 'undefined') {
     window.currentSearchData = [];
 }
@@ -30,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalContent = document.getElementById('modalContent');
     const changelogModal = document.getElementById('changelogModal');
 
-    // --- LÓGICA DE BOAS-VINDAS ---
+    // --- LÓGICA DE LOGIN / WELCOME ---
     if (loginButton && welcomeScreen && mainApp) {
         loginButton.addEventListener('click', () => {
             welcomeScreen.classList.add('hidden');
@@ -41,8 +40,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- FUNÇÕES DE UTILIDADE ---
     const formatDate = (dateString) => {
         if (!dateString) return 'N/A';
-        const date = new Date(dateString);
-        return date.toLocaleDateString('pt-BR');
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('pt-BR');
+        } catch (e) { return dateString; }
     };
 
     /**
@@ -52,26 +53,26 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!resultsBody) return;
         resultsBody.innerHTML = '';
 
-        if (data.length === 0) {
-            if (resultsSection) resultsSection.classList.add('hidden');
-            if (noResultsMessage) noResultsMessage.classList.remove('hidden');
+        if (!data || data.length === 0) {
+            resultsSection?.classList.add('hidden');
+            noResultsMessage?.classList.remove('hidden');
             return;
         }
 
-        if (noResultsMessage) noResultsMessage.classList.add('hidden');
-        if (resultsSection) resultsSection.classList.remove('hidden');
+        noResultsMessage?.classList.add('hidden');
+        resultsSection?.classList.remove('hidden');
 
         data.forEach((item, index) => {
             const row = document.createElement('tr');
             row.className = "hover:bg-gray-50 border-b transition-colors";
             row.innerHTML = `
-                <td class="p-3 text-sm text-gray-700 font-mono">${item.numero || item.id}</td>
-                <td class="p-3 text-sm text-gray-900 font-medium">${item.cliente}</td>
+                <td class="p-3 text-sm text-gray-700 font-mono">${item.numero || item.id || 'N/A'}</td>
+                <td class="p-3 text-sm text-gray-900 font-medium">${item.cliente || 'N/A'}</td>
                 <td class="p-3 text-sm text-gray-600">${formatDate(item.vencimento)}</td>
                 <td class="p-3 text-right">
                     <button 
-                        onclick="showPolicyDetails(${index})" 
-                        class="text-blue-600 hover:text-blue-800 font-bold text-sm"
+                        onclick="openDetails(${index})" 
+                        class="text-blue-600 hover:text-blue-800 font-bold text-sm transition-colors"
                     >
                         Detalhes
                     </button>
@@ -91,95 +92,112 @@ document.addEventListener('DOMContentLoaded', () => {
             const numero = document.getElementById('numero')?.value || '';
             const cliente = document.getElementById('cliente')?.value || '';
 
-            if (loadingIndicator) loadingIndicator.classList.remove('hidden');
-            if (resultsSection) resultsSection.classList.add('hidden');
-            if (noResultsMessage) noResultsMessage.classList.add('hidden');
+            loadingIndicator?.classList.remove('hidden');
+            resultsSection?.classList.add('hidden');
+            noResultsMessage?.classList.add('hidden');
 
             try {
                 const response = await fetch(`${API_BASE_URL}?numero=${numero}&cliente=${cliente}`);
-                if (!response.ok) throw new Error('Erro na comunicação com o servidor');
+                if (!response.ok) throw new Error('Erro na comunicação');
                 
                 const data = await response.json();
-                window.currentSearchData = data; // Armazena no window para acesso global
+                window.currentSearchData = data; // Armazena globalmente para o modal
                 renderResults(data);
             } catch (error) {
                 console.error('Erro na busca:', error);
             } finally {
-                if (loadingIndicator) loadingIndicator.classList.add('hidden');
+                loadingIndicator?.classList.add('hidden');
             }
         });
     }
 
-    // --- LÓGICA DO MODAL (EXPOSTA AO WINDOW PARA O ONCLICK FUNCIONAR) ---
-    
+    // --- LÓGICA DO MODAL (ESTRUTURA DEFENSIVA) ---
+
     /**
-     * Função para mostrar detalhes da apólice
-     * @param {number} index - Índice no array global
+     * Função para abrir detalhes (Exposta globalmente)
      */
-    window.showPolicyDetails = (index) => {
+    window.openDetails = (index) => {
         const item = window.currentSearchData[index];
         if (!item || !policyModal || !modalContent) return;
 
-        // Cabeçalho do Modal
-        let contentHtml = `
+        // Limpeza de segurança para evitar o erro 'reading Tag'
+        // Definimos os campos que queremos exibir
+        const displayFields = [
+            { key: 'numero', label: 'Número' },
+            { key: 'cliente', label: 'Segurado' },
+            { key: 'vencimento', label: 'Vencimento', isDate: true },
+            { key: 'status', label: 'Situação', isStatus: true },
+            { key: 'coberturas', label: 'Coberturas' }
+        ];
+
+        let html = `
             <div class="mb-6 border-b pb-4">
-                <h3 class="text-xl font-bold text-gray-800">${item.cliente}</h3>
-                <p class="text-sm text-gray-500">Apólice: ${item.numero || item.id}</p>
+                <h3 class="text-xl font-bold text-gray-800">${item.cliente || 'Dados do Cliente'}</h3>
+                <p class="text-sm text-gray-500 font-mono">ID/Apólice: ${item.numero || item.id || 'N/A'}</p>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
         `;
 
-        // Mapeamento dinâmico de todos os campos (Mantendo sua lógica original)
-        Object.entries(item).forEach(([key, value]) => {
-            if (['cliente', 'numero', 'id'].includes(key)) return;
+        displayFields.forEach(field => {
+            const value = item[field.key];
+            if (value === undefined || value === null) return;
 
-            const label = key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ');
+            let formattedValue = value;
+            if (field.isDate) formattedValue = formatDate(value);
             
-            if (key.toLowerCase().includes('vencimento') || key.toLowerCase().includes('data')) {
-                contentHtml += `<div><strong class="text-gray-600">${label}:</strong> ${formatDate(value)}</div>`;
-            } else if (key === 'status') {
-                const color = value?.toLowerCase() === 'ativa' ? 'text-green-600' : 'text-red-600';
-                contentHtml += `<div><strong class="text-gray-600">${label}:</strong> <span class="font-bold ${color}">${value}</span></div>`;
-            } else if (value !== null && typeof value !== 'object') {
-                contentHtml += `<div><strong class="text-gray-600">${label}:</strong> ${value}</div>`;
+            let extraClass = "";
+            if (field.isStatus) {
+                extraClass = value.toLowerCase() === 'ativa' ? 'text-green-600 font-bold' : 'text-red-600 font-bold';
             }
+
+            html += `
+                <div class="p-2 bg-gray-50 rounded">
+                    <strong class="block text-[10px] text-gray-400 uppercase tracking-widest">${field.label}</strong>
+                    <span class="${extraClass}">${formattedValue}</span>
+                </div>
+            `;
         });
 
-        contentHtml += '</div>';
+        // Caso existam campos extras no JSON que não mapeamos acima
+        Object.entries(item).forEach(([key, value]) => {
+            if (displayFields.find(f => f.key === key) || ['id', 'cliente', 'numero'].includes(key)) return;
+            if (typeof value === 'object') return;
+
+            html += `
+                <div class="p-2 bg-gray-50 rounded">
+                    <strong class="block text-[10px] text-gray-400 uppercase tracking-widest">${key.replace(/_/g, ' ')}</strong>
+                    <span>${value}</span>
+                </div>
+            `;
+        });
+
+        html += '</div>';
         
-        modalContent.innerHTML = contentHtml;
-        
-        // Exibição do Modal
+        modalContent.innerHTML = html;
         policyModal.classList.remove("hidden");
         policyModal.classList.add("flex");
         document.body.style.overflow = 'hidden';
     };
 
+    // Alias para compatibilidade caso o HTML use showPolicyDetails
+    window.showPolicyDetails = window.openDetails;
+
     /**
-     * Função para fechar modais
+     * Função para fechar modal
      */
     window.closeModal = () => {
-        if (policyModal) {
-            policyModal.classList.add('hidden');
-            policyModal.classList.remove('flex');
-        }
-        if (changelogModal) changelogModal.classList.add('hidden');
+        policyModal?.classList.add('hidden');
+        policyModal?.classList.remove('flex');
+        changelogModal?.classList.add('hidden');
         document.body.style.overflow = 'auto';
     };
 
-    // Eventos de fecho
-    if (closeModalButton) {
-        closeModalButton.addEventListener('click', window.closeModal);
-    }
+    if (closeModalButton) closeModalButton.addEventListener('click', window.closeModal);
 
-    // Fechar ao clicar na área escura
     window.addEventListener('click', (e) => {
-        if (e.target === policyModal || e.target === changelogModal) {
-            window.closeModal();
-        }
+        if (e.target === policyModal || e.target === changelogModal) window.closeModal();
     });
 
-    // Tecla ESC para fechar
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') window.closeModal();
     });
