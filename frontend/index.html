@@ -46,7 +46,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         <div>
                             <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Ramo de Seguro *</label>
-                            <select id="beneficiary-type" name="tipoBeneficiario" class="w-full px-4 py-3 bg-gray-50 border-0 rounded-xl focus:ring-2 focus:ring-blue-500">
+                            <select id="beneficiary-type" name="tipoBeneficiario" class="w-full px-4 py-3 bg-gray-50 border-0 rounded-xl focus:ring-2 focus:ring-blue-500" required>
                                 <option value="">Selecione...</option>
                                 <option value="automovel">Automóvel</option>
                                 <option value="residencial">Residencial</option>
@@ -60,7 +60,7 @@
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Nº Apólice</label>
-                            <input type="text" id="policy-number" name="policyNumber" class="w-full px-4 py-3 bg-gray-50 border-0 rounded-xl">
+                            <input type="text" id="policy-number" name="policyNumber" class="w-full px-4 py-3 bg-gray-50 border-0 rounded-xl focus:ring-2 focus:ring-blue-500" placeholder="Número completo...">
                         </div>
                     </div>
                     <div class="mt-8 flex justify-end gap-3">
@@ -71,23 +71,24 @@
             </div>
 
             <div id="results-container" class="mt-10 bg-white rounded-2xl shadow-xl overflow-hidden hidden">
-                <table class="min-w-full">
-                    <thead class="bg-gray-50 border-b">
-                        <tr>
-                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-widest">Segurado</th>
-                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-widest">Apólice</th>
-                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-widest">Início Vigência</th>
-                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-widest">Status</th>
-                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-widest text-center">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody id="results-table-body" class="divide-y divide-gray-100"></tbody>
-                </table>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full">
+                        <thead class="bg-gray-50 border-b">
+                            <tr>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-widest">Segurado</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-widest">Apólice</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-widest">Início Vigência</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-widest">Status</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-widest text-center">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="results-table-body" class="divide-y divide-gray-100"></tbody>
+                    </table>
+                </div>
             </div>
         </main>
     </div>
 
-    <!-- Modal Detalhes -->
     <div id="details-modal" class="modal-overlay" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
@@ -131,7 +132,6 @@
         </div>
     </div>
 
-    <!-- Modal Novidades -->
     <div id="news-modal" class="modal-overlay" style="display: none;">
         <div class="modal-content max-w-2xl">
             <div class="modal-header">
@@ -143,117 +143,157 @@
     </div>
 
     <script>
+        // --- CONFIGURAÇÃO ---
+        const API_URL = '/api/apolices';
+        
+        // --- ELEMENTOS DO DOM ---
         const welcomeSection = document.getElementById('welcome-section');
         const searchSection = document.getElementById('search-section');
         const newsModal = document.getElementById('news-modal');
         const detailsModal = document.getElementById('details-modal');
         const searchForm = document.getElementById('search-form');
+        const resultsTableBody = document.getElementById('results-table-body');
+        const resultsContainer = document.getElementById('results-container');
 
-        // Variável global para armazenar os dados e evitar erros de JSON no HTML
+        // --- ESTADO GLOBAL ---
         let currentSearchData = [];
 
+        // --- NAVEGAÇÃO ---
         document.getElementById('start-search-button').onclick = () => { 
             welcomeSection.style.display = 'none'; 
             searchSection.style.display = 'block'; 
         };
-        
+
+        // --- CHANGELOG ---
         document.getElementById('news-button').onclick = async () => {
             newsModal.style.display = 'flex';
             try {
                 const response = await fetch('changelog.json');
+                if (!response.ok) throw new Error();
                 const data = await response.json();
                 let html = '';
                 data.forEach(v => {
-                    html += `<div class="changelog-item"><div class="font-bold text-lg text-gray-800">Versão ${v.version} - ${v.date}</div><ul class="list-disc ml-5 mt-2 text-gray-600">${v.changes.map(c => `<li>${c}</li>`).join('')}</ul></div>`;
+                    html += `
+                        <div class="changelog-item">
+                            <div class="font-bold text-lg text-gray-800">Versão ${v.version} - ${v.date}</div>
+                            <ul class="list-disc ml-5 mt-2 text-gray-600">
+                                ${v.changes.map(c => `<li>${c}</li>`).join('')}
+                            </ul>
+                        </div>`;
                 });
                 document.getElementById('news-body').innerHTML = html;
-            } catch (e) { document.getElementById('news-body').innerHTML = 'Erro ao carregar atualizações.'; }
+            } catch (e) { 
+                document.getElementById('news-body').innerHTML = '<p class="text-red-500">Erro ao carregar as atualizações.</p>'; 
+            }
         };
 
+        // --- BUSCA ---
         searchForm.onsubmit = async (e) => {
             e.preventDefault();
             const tipo = document.getElementById('beneficiary-type').value;
-            if (!tipo) { alert('Selecione o Ramo.'); return; }
+            if (!tipo) { alert('Por favor, selecione o Ramo de Seguro.'); return; }
             
             try {
                 const params = new URLSearchParams(new FormData(searchForm));
-                const response = await fetch(`/api/apolices?${params}`);
+                const response = await fetch(`${API_URL}?${params}`);
+                if (!response.ok) throw new Error('Falha na resposta do servidor');
+                
                 const data = await response.json();
-                currentSearchData = data; // Salva os dados na global
+                currentSearchData = data;
                 renderResults(data);
-            } catch (err) { alert('Erro na conexão com o servidor.'); }
+            } catch (err) { 
+                alert('Erro na conexão com o servidor. Verifique se o backend está rodando.'); 
+                console.error(err);
+            }
         };
 
         function renderResults(data) {
-            const body = document.getElementById('results-table-body');
-            document.getElementById('results-container').classList.remove('hidden');
-            body.innerHTML = '';
+            resultsTableBody.innerHTML = '';
+            
+            if (data.length === 0) {
+                resultsContainer.classList.add('hidden');
+                alert('Nenhum resultado encontrado.');
+                return;
+            }
+
+            resultsContainer.classList.remove('hidden');
             
             data.forEach((item, index) => {
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-blue-50 transition';
-                const fmtDate = (d) => d ? new Date(d).toLocaleDateString('pt-BR', {timeZone: 'UTC'}) : 'N/A';
-                let statusColor = item.status === 'CANCELADA' ? 'text-red-600 font-bold' : (item.status === 'VENCIDA' ? 'text-orange-600 font-bold' : 'text-green-600 font-bold');
                 
+                const fmtDate = (d) => d ? new Date(d).toLocaleDateString('pt-BR', {timeZone: 'UTC'}) : 'N/A';
+                
+                const statusColors = {
+                    'CANCELADA': 'text-red-600 font-bold',
+                    'VENCIDA': 'text-orange-600 font-bold',
+                    'ATIVO': 'text-green-600 font-bold'
+                };
+                const colorClass = statusColors[item.status] || 'text-gray-600';
+
                 tr.innerHTML = `
-                    <td class="px-6 py-4 text-sm font-semibold">${item.client}</td>
-                    <td class="px-6 py-4 text-sm text-gray-500">${item.id}</td>
+                    <td class="px-6 py-4 text-sm font-semibold">${item.client || 'N/A'}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500 font-mono">${item.id || 'N/A'}</td>
                     <td class="px-6 py-4 text-sm text-gray-500">${fmtDate(item.startDate)}</td>
-                    <td class="px-6 py-4 text-sm"><span class="${statusColor}">${item.status}</span></td>
+                    <td class="px-6 py-4 text-sm"><span class="${colorClass}">${item.status}</span></td>
                     <td class="px-6 py-4 text-center">
-                        <button class="px-4 py-1 bg-blue-100 text-blue-700 rounded-lg font-bold hover:bg-blue-200" onclick="openDetails(${index})">Detalhes</button>
+                        <button class="px-4 py-1 bg-blue-100 text-blue-700 rounded-lg font-bold hover:bg-blue-600 hover:text-white transition-all" onclick="openDetails(${index})">Detalhes</button>
                     </td>
                 `;
-                body.appendChild(tr);
+                resultsTableBody.appendChild(tr);
             });
         }
 
+        // --- MODAL DE DETALHES (CORREÇÃO DO ERRO 'Tag') ---
         window.openDetails = (index) => {
             const item = currentSearchData[index];
             if(!item) return;
 
             const fmtDate = (d) => d ? new Date(d).toLocaleDateString('pt-BR', {timeZone: 'UTC'}) : 'N/A';
             
-            // Lógica das Tags
+            // Lógica das Tags (Removido o .details inexistente)
             const tagContainer = document.getElementById('detail-tag');
             tagContainer.innerHTML = '';
-            const tApolice = String(item.details.Tag || '').toLowerCase();
+            const tApolice = String(item.Tag || '').toLowerCase();
             if (tApolice.includes('frota')) tagContainer.innerHTML = '<span class="tag-orange">Frota</span>';
             else if (tApolice.includes('individual')) tagContainer.innerHTML = '<span class="tag-blue">Individual</span>';
 
-            // Preenchimento do Modal
+            // Preenchimento do Modal - Dados Pessoais
             document.getElementById('detail-nome').innerText = item.client || 'N/A';
             document.getElementById('detail-doc').innerText = item.documento || 'N/A';
-            document.getElementById('detail-end').innerText = `${item.details.End || ''}, ${item.details.Bairro || ''} - ${item.details.Cid || ''}/${item.details.Est || ''}`;
+            document.getElementById('detail-end').innerText = `${item.End || ''}, ${item.Bairro || ''} - ${item.Cid || ''}/${item.Est || ''}`;
             
-            document.getElementById('detail-placa').innerText = item.details.Placa || 'N/A';
-            document.getElementById('detail-chassi').innerText = item.details.Chassi || 'N/A';
-            document.getElementById('detail-modelo').innerText = `${item.details.Marca || ''} / ${item.details.Modelo || ''}`;
-            document.getElementById('detail-anos').innerText = `${item.details.AnoF || 'N/A'} / ${item.details.AnoM || 'N/A'}`;
-            document.getElementById('detail-tipo').innerText = item.details.TipoV || 'N/A';
-            document.getElementById('detail-combustivel').innerText = item.details.Comb || 'N/A';
-            document.getElementById('detail-cor').innerText = item.details.Cor || 'N/A';
-            document.getElementById('detail-fipe').innerText = item.details.Fipe || 'N/A';
-            document.getElementById('detail-item').innerText = item.details.Item || 'N/A';
+            // Dados do Bem (Removido o .details inexistente)
+            document.getElementById('detail-placa').innerText = item.Placa || 'N/A';
+            document.getElementById('detail-chassi').innerText = item.Chassi || 'N/A';
+            document.getElementById('detail-modelo').innerText = `${item.Marca || ''} / ${item.Modelo || ''}`;
+            document.getElementById('detail-anos').innerText = `${item.AnoF || 'N/A'} / ${item.AnoM || 'N/A'}`;
+            document.getElementById('detail-tipo').innerText = item.TipoV || 'N/A';
+            document.getElementById('detail-combustivel').innerText = item.Comb || 'N/A';
+            document.getElementById('detail-cor').innerText = item.Cor || 'N/A';
+            document.getElementById('detail-fipe').innerText = item.Fipe || 'N/A';
+            document.getElementById('detail-item').innerText = item.Item || 'N/A';
             
+            // Dados da Apólice
             document.getElementById('detail-apolice').innerText = item.id || 'N/A';
-            document.getElementById('detail-endosso').innerText = item.details.Endosso || 'N/A';
-            document.getElementById('detail-plano-cod').innerText = item.details.PlanoCod || 'N/A';
-            document.getElementById('detail-plano-desc').innerText = item.details.planoDescricao || 'Descrição não encontrada';
+            document.getElementById('detail-endosso').innerText = item.Endosso || 'N/A';
+            document.getElementById('detail-plano-cod').innerText = item.PlanoCod || 'N/A';
+            document.getElementById('detail-plano-desc').innerText = item.planoDescricao || 'Descrição não encontrada';
             document.getElementById('detail-vigencia').innerText = `${fmtDate(item.startDate)} a ${fmtDate(item.endDate)}`;
             document.getElementById('detail-status-modal').innerText = item.status;
 
             detailsModal.style.display = 'flex';
         };
 
+        // --- EVENTOS DE FECHAMENTO ---
         document.getElementById('close-details').onclick = () => detailsModal.style.display = 'none';
         document.getElementById('close-news').onclick = () => newsModal.style.display = 'none';
         document.getElementById('clear-button').onclick = () => { 
             searchForm.reset(); 
-            document.getElementById('results-container').classList.add('hidden'); 
+            resultsContainer.classList.add('hidden'); 
         };
 
-        // Fechar modal ao clicar fora
+        // Fechar modal ao clicar fora do conteúdo
         window.onclick = (event) => {
             if (event.target == detailsModal) detailsModal.style.display = 'none';
             if (event.target == newsModal) newsModal.style.display = 'none';
