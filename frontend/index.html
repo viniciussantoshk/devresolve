@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consulta de Apólices | RESOLVE ASSIST</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="fonts.css">
+    <style>
+        body { font-family: 'Poppins', sans-serif; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.6); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 1rem; }
+        .modal-content { background-color: white; padding: 25px 35px; border-radius: 12px; width: 95%; max-width: 900px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f3f4f6; padding-bottom: 15px; margin-bottom: 20px; }
+        .close-button { background: none; border: none; font-size: 2.2rem; cursor: pointer; color: #9ca3af; }
+        .modal-body h3 { margin-top: 25px; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px; font-size: 1.15rem; font-weight: 700; color: #1e3a8a; }
+        .detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 10px; }
+        .detail-grid p { font-size: 0.9rem; color: #4b5563; }
+        .detail-grid strong { color: #1f2937; }
+        .tag-orange { background-color: #f97316; color: white; padding: 2px 10px; border-radius: 9999px; font-weight: bold; font-size: 0.75rem; margin-left: 10px; }
+        .tag-blue { background-color: #3b82f6; color: white; padding: 2px 10px; border-radius: 9999px; font-weight: bold; font-size: 0.75rem; margin-left: 10px; }
+        .changelog-item { border-left: 4px solid #3b82f6; padding-left: 15px; margin-bottom: 20px; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900">
+
+    <div id="welcome-section" class="container mx-auto p-4 flex items-center justify-center min-h-screen">
+        <div class="text-center bg-white p-12 rounded-2xl shadow-2xl border border-gray-100">
+            <h1 class="text-5xl font-extrabold text-gray-800">Resolve <span class="text-blue-600">SearchZone</span></h1>
+            <p class="text-gray-500 mt-5 text-lg">Bem-vindo(a) ao SearchZone consulta de Apólices</p>
+            <div class="mt-10 flex flex-wrap justify-center gap-4">
+                <button id="start-search-button" class="px-10 py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition transform hover:scale-105">Efetuar Consulta</button>
+                <button id="news-button" class="px-10 py-4 bg-gray-200 text-gray-800 font-bold rounded-xl hover:bg-gray-300 transition">Ver Novidades</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="search-section" class="container mx-auto p-4 md:p-8" style="display: none;">
+        <header class="flex justify-between items-center mb-10">
+            <h1 class="text-3xl font-bold text-gray-800">Resolve <span class="text-blue-600">SearchZone</span></h1>
+            <button onclick="location.reload()" class="text-sm font-bold text-blue-600 hover:underline">Voltar ao Início</button>
+        </header>
+        <main>
+            <div class="bg-white p-8 rounded-2xl shadow-lg mb-10 border border-gray-100">
+                <form id="search-form">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Ramo de Seguro *</label>
+                            <select id="beneficiary-type" name="tipoBeneficiario" class="w-full px-4 py-3 bg-gray-50 border-0 rounded-xl focus:ring-2 focus:ring-blue-500">
+                                <option value="">Selecione...</option>
+                                <option value="automovel">Automóvel</option>
+                                <option value="residencial">Residencial</option>
+                                <option value="vida">Vida</option>
+                                <option value="empresarial">Empresarial</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Doc/Placa/Chassi</label>
+                            <input type="text" id="document-number" name="documentNumber" class="w-full px-4 py-3 bg-gray-50 border-0 rounded-xl focus:ring-2 focus:ring-blue-500" placeholder="Busca inteligente...">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Nº Apólice</label>
+                            <input type="text" id="policy-number" name="policyNumber" class="w-full px-4 py-3 bg-gray-50 border-0 rounded-xl">
+                        </div>
+                    </div>
+                    <div class="mt-8 flex justify-end gap-3">
+                        <button type="button" id="clear-button" class="px-6 py-3 text-gray-600 font-bold hover:bg-gray-100 rounded-xl transition">Limpar</button>
+                        <button type="submit" class="px-10 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition">Pesquisar</button>
+                    </div>
+                </form>
+            </div>
+            <div id="results-container" class="mt-10 bg-white rounded-2xl shadow-xl overflow-hidden hidden">
+                <table class="min-w-full">
+                    <thead class="bg-gray-50 border-b">
+                        <tr>
+                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-widest">Segurado</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-widest">Apólice</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-widest">Início Vigência</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-widest">Status</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-widest text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="results-table-body" class="divide-y divide-gray-100"></tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Detalhes -->
+    <div id="details-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="flex items-center">
+                    <h2 class="text-2xl font-bold text-gray-800">Detalhes da Apólice</h2>
+                    <span id="detail-tag"></span>
+                </div>
+                <button id="close-details" class="close-button">&times;</button>
+            </div>
+            <div class="modal-body" id="modal-body-content">
+                <h3>Dados do Segurado</h3>
+                <div class="detail-grid">
+                    <p><strong>Nome:</strong> <span id="detail-nome"></span></p>
+                    <p><strong>CPF/CNPJ:</strong> <span id="detail-doc"></span></p>
+                    <p><strong>Endereço:</strong> <span id="detail-end"></span></p>
+                </div>
+
+                <h3>Dados do Veículo / Bem</h3>
+                <div class="detail-grid">
+                    <p><strong>Placa:</strong> <span id="detail-placa" class="font-bold text-blue-700"></span></p>
+                    <p><strong>Chassi:</strong> <span id="detail-chassi"></span></p>
+                    <p><strong>Marca/Modelo:</strong> <span id="detail-modelo"></span></p>
+                    <p><strong>Ano Fab/Mod:</strong> <span id="detail-anos"></span></p>
+                    <p><strong>Tipo:</strong> <span id="detail-tipo"></span></p>
+                    <p><strong>Combustível:</strong> <span id="detail-combustivel"></span></p>
+                    <p><strong>Cor:</strong> <span id="detail-cor"></span></p>
+                    <p><strong>Cód. FIPE:</strong> <span id="detail-fipe"></span></p>
+                    <p><strong>Nº Item:</strong> <span id="detail-item"></span></p>
+                </div>
+
+                <h3>Informações da Apólice</h3>
+                <div class="detail-grid">
+                    <p><strong>Apólice:</strong> <span id="detail-apolice"></span></p>
+                    <p><strong>Endosso:</strong> <span id="detail-endosso"></span></p>
+                    <p><strong>Cód. Plano:</strong> <span id="detail-plano-cod"></span></p>
+                    <p><strong>Plano Assistência:</strong> <span id="detail-plano-desc"></span></p>
+                    <p><strong>Período Vigência:</strong> <span id="detail-vigencia"></span></p>
+                    <p><strong>Status:</strong> <span id="detail-status-modal"></span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Novidades -->
+    <div id="news-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content max-w-2xl">
+            <div class="modal-header">
+                <h2 class="text-2xl font-bold text-blue-600">Novidades do Sistema</h2>
+                <button id="close-news" class="close-button text-3xl">&times;</button>
+            </div>
+            <div id="news-body" class="p-4"></div>
+        </div>
+    </div>
+
+    <script>
+        const welcomeSection = document.getElementById('welcome-section');
+        const searchSection = document.getElementById('search-section');
+        const newsModal = document.getElementById('news-modal');
+        const detailsModal = document.getElementById('details-modal');
+        const searchForm = document.getElementById('search-form');
+
+<<<<<<< HEAD
+        // Variável global para armazenar os dados e evitar erros de JSON no HTML
+        let currentSearchData = [];
+
+        document.getElementById('start-search-button').onclick = () => { 
+            welcomeSection.style.display = 'none'; 
+            searchSection.style.display = 'block'; 
+        };
+=======
+        let currentSearchData = [];
+
+        document.getElementById('start-search-button').onclick = () => { welcomeSection.style.display = 'none'; searchSection.style.display = 'block'; };
+>>>>>>> develop
+        
+        document.getElementById('news-button').onclick = async () => {
+            newsModal.style.display = 'flex';
+            try {
+                const response = await fetch('changelog.json');
+                const data = await response.json();
+                let html = '';
+                data.forEach(v => {
+                    html += `<div class="changelog-item"><div class="font-bold text-lg text-gray-800">Versão ${v.version} - ${v.date}</div><ul class="list-disc ml-5 mt-2 text-gray-600">${v.changes.map(c => `<li>${c}</li>`).join('')}</ul></div>`;
+                });
+                document.getElementById('news-body').innerHTML = html;
+            } catch (e) { document.getElementById('news-body').innerHTML = 'Erro ao carregar atualizações.'; }
+        };
+
+        searchForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const tipo = document.getElementById('beneficiary-type').value;
+            if (!tipo) { alert('Selecione o Ramo.'); return; }
+            try {
+                const params = new URLSearchParams(new FormData(searchForm));
+                const response = await fetch(`/api/apolices?${params}`);
+                const data = await response.json();
+<<<<<<< HEAD
+                currentSearchData = data; // Salva os dados na global
+=======
+                currentSearchData = data; // Armazena na variável global
+>>>>>>> develop
+                renderResults(data);
+            } catch (err) { alert('Erro na conexão com o servidor.'); }
+        };
+
+        function renderResults(data) {
+            const body = document.getElementById('results-table-body');
+            document.getElementById('results-container').classList.remove('hidden');
+            body.innerHTML = '';
+<<<<<<< HEAD
+            
+=======
+>>>>>>> develop
+            data.forEach((item, index) => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-blue-50 transition';
+                const fmtDate = (d) => d ? new Date(d).toLocaleDateString('pt-BR', {timeZone: 'UTC'}) : 'N/A';
+                let statusColor = item.status === 'CANCELADA' ? 'text-red-600 font-bold' : (item.status === 'VENCIDA' ? 'text-orange-600 font-bold' : 'text-green-600 font-bold');
+                
+                tr.innerHTML = `
+                    <td class="px-6 py-4 text-sm font-semibold">${item.client}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">${item.id}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">${fmtDate(item.startDate)}</td>
+                    <td class="px-6 py-4 text-sm"><span class="${statusColor}">${item.status}</span></td>
+                    <td class="px-6 py-4 text-center">
+                        <button class="px-4 py-1 bg-blue-100 text-blue-700 rounded-lg font-bold hover:bg-blue-200" onclick="openDetails(${index})">Detalhes</button>
+                    </td>
+                `;
+                body.appendChild(tr);
+            });
+        }
+
+        window.openDetails = (index) => {
+            const item = currentSearchData[index];
+            if(!item) return;
+
+            const fmtDate = (d) => d ? new Date(d).toLocaleDateString('pt-BR', {timeZone: 'UTC'}) : 'N/A';
+            
+            // Lógica das Tags
+            const tagContainer = document.getElementById('detail-tag');
+            tagContainer.innerHTML = '';
+            const tTag = String(item.Tag || '').toLowerCase();
+            if (tTag.includes('frota')) tagContainer.innerHTML = '<span class="tag-orange">Frota</span>';
+            else if (tTag.includes('individual')) tagContainer.innerHTML = '<span class="tag-blue">Individual</span>';
+
+<<<<<<< HEAD
+            // Preenchimento do Modal
+            document.getElementById('detail-nome').innerText = item.client || 'N/A';
+            document.getElementById('detail-doc').innerText = item.documento || 'N/A';
+            document.getElementById('detail-end').innerText = `${item.details.End || ''}, ${item.details.Bairro || ''} - ${item.details.Cid || ''}/${item.details.Est || ''}`;
+            
+            document.getElementById('detail-placa').innerText = item.details.Placa || 'N/A';
+            document.getElementById('detail-chassi').innerText = item.details.Chassi || 'N/A';
+            document.getElementById('detail-modelo').innerText = `${item.details.Marca || ''} / ${item.details.Modelo || ''}`;
+            document.getElementById('detail-anos').innerText = `${item.details.AnoF || 'N/A'} / ${item.details.AnoM || 'N/A'}`;
+            document.getElementById('detail-tipo').innerText = item.details.TipoV || 'N/A';
+            document.getElementById('detail-combustivel').innerText = item.details.Comb || 'N/A';
+            document.getElementById('detail-cor').innerText = item.details.Cor || 'N/A';
+            document.getElementById('detail-fipe').innerText = item.details.Fipe || 'N/A';
+            document.getElementById('detail-item').innerText = item.details.Item || 'N/A';
+            
+            document.getElementById('detail-apolice').innerText = item.id || 'N/A';
+            document.getElementById('detail-endosso').innerText = item.details.Endosso || 'N/A';
+            document.getElementById('detail-plano-cod').innerText = item.details.PlanoCod || 'N/A';
+            document.getElementById('detail-plano-desc').innerText = item.details.planoDescricao || 'Descrição não encontrada';
+=======
+            // Preenchimento do Modal (Acesso direto às propriedades da raiz do item)
+            document.getElementById('detail-nome').innerText = item.client || 'N/A';
+            document.getElementById('detail-doc').innerText = item.documento || 'N/A';
+            document.getElementById('detail-end').innerText = `${item.End || ''}, ${item.Bairro || ''} - ${item.Cid || ''}/${item.Est || ''}`;
+            
+            document.getElementById('detail-placa').innerText = item.Placa || 'N/A';
+            document.getElementById('detail-chassi').innerText = item.Chassi || 'N/A';
+            document.getElementById('detail-modelo').innerText = `${item.Marca || ''} / ${item.Modelo || ''}`;
+            document.getElementById('detail-anos').innerText = `${item.AnoF || 'N/A'} / ${item.AnoM || 'N/A'}`;
+            document.getElementById('detail-tipo').innerText = item.TipoV || 'N/A';
+            document.getElementById('detail-combustivel').innerText = item.Comb || 'N/A';
+            document.getElementById('detail-cor').innerText = item.Cor || 'N/A';
+            document.getElementById('detail-fipe').innerText = item.Fipe || 'N/A';
+            document.getElementById('detail-item').innerText = item.Item || 'N/A';
+            
+            document.getElementById('detail-apolice').innerText = item.id || 'N/A';
+            document.getElementById('detail-endosso').innerText = item.Endosso || 'N/A';
+            document.getElementById('detail-plano-cod').innerText = item.PlanoCod || 'N/A';
+            document.getElementById('detail-plano-desc').innerText = item.planoDescricao || 'Descrição não encontrada';
+>>>>>>> develop
+            document.getElementById('detail-vigencia').innerText = `${fmtDate(item.startDate)} a ${fmtDate(item.endDate)}`;
+            document.getElementById('detail-status-modal').innerText = item.status;
+
+            detailsModal.style.display = 'flex';
+        };
+
+        document.getElementById('close-details').onclick = () => detailsModal.style.display = 'none';
+        document.getElementById('close-news').onclick = () => newsModal.style.display = 'none';
+<<<<<<< HEAD
+        document.getElementById('clear-button').onclick = () => { 
+            searchForm.reset(); 
+            document.getElementById('results-container').classList.add('hidden'); 
+        };
+
+        // Fechar modal ao clicar fora
+=======
+        document.getElementById('clear-button').onclick = () => { searchForm.reset(); document.getElementById('results-container').classList.add('hidden'); };
+        
+>>>>>>> develop
+        window.onclick = (event) => {
+            if (event.target == detailsModal) detailsModal.style.display = 'none';
+            if (event.target == newsModal) newsModal.style.display = 'none';
+        }
+    </script>
+</body>
+</html>

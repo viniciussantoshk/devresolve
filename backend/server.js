@@ -1,0 +1,299 @@
+// =====================================================================
+// ARQUIVO server.js - VERSÃO FINAL PRODUÇÃO (ALMALINUX)
+// =====================================================================
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const sql = require('mssql');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+const clausulasMap = {
+    "1001": "EZZE - ASSISTENCIA AUTO VIDA",
+    "2002": "EZZE - ASSISTENCIA RESIDENCIAL ESSENCIAL",
+    "2003": "EZZE - ASSISTENCIA RESIDENCIAL AVANCADO",
+    "2004": "EZZE - ASSISTENCIA RESIDENCIAL COMPLETO",
+    "2005": "EZZE - ASSISTENCIA RESIDENCIAL BECKER",
+    "2006": "EZZE - ASSISTENCIA RESIDENCIAL BECKER_FORA DE BASE",
+    "2007": "EZZE - ASSISTENCIA RESIDENCIAL VIDA INDIVIDUAL",
+    "3002": "EZZE - ASSISTENCIA FUNERAL INDIVIDUAL - R$ 10.000,00",
+    "3003": "EZZE - ASSISTENCIA FUNERAL FAMILIAR - R$ 10.000,00",
+    "3004": "EZZE - ASSISTENCIA FUNERAL FAMILIAR ESTENDIDO- R$ 10.000,00",
+    "3005": "EZZE - ASSISTENCIA FUNERAL FAMILIAR ESTENDIDO- R$ 10.000,00 - FORA DE BASE",
+    "3006": "EZZE - ASSISTENCIA FUNERAL FAMILIAR ESTENDIDO- R$ 7.000,00",
+    "3007": "EZZE - ASSISTENCIA FUNERAL FAMILIAR ESTENDIDO - R$ 7.000,00 - FORA DE BASE",
+    "3008": "EZZE - ASSISTENCIA FUNERAL INDIVIDUAL - R$ 7.5000",
+    "3009": "EZZE - ASSISTENCIA FUNERAL FAMILIAR - R$ 4.400,00",
+    "3010": "EZZE - ASSISTENCIA FUNERAL FAMILIAR - R$ 4.400,00 - FORA DE BASE",
+    "3011": "EZZE - ASSISTENCIA FUNERAL INDIVIDUAL - R$ 22.797,92",
+    "3012": "EZZE - ASSISTENCIA FUNERAL INDIVIDUAL - R$ 22.797,92 - FORA DE BASE",
+    "3252": "EZZE - FUNERAL FAMILIAR - R$ 4.300,00",
+    "3253": "EZZE - FUNERAL FAMILIAR - R$ 3.000,00",
+    "3254": "EZZE - ASSISTENCIA NUTRICIONAL",
+    "3255": "EZZE - CESTA CARTAO ALIMENTACAO NATALIDADE - R$ 200,00",
+    "3256": "EZZE - CESTA KIT NATALIDADE MAMAE E BEBE",
+    "3257": "EZZE - ORIENTACAO PSICOLOGICA",
+    "3267": "EZZE – CESTA CARTAO ALIMENTACAO – MORTE – 6 X R$450,00 - FORA DE BASE",
+    "3268": "EZZE - FUNERAL INDIVIDUAL - R$3.000,00",
+    "3274": "EZZE SEGUROS - PAGTO PRESTADOR - EPHARMA",
+    "3292": "EZZE - FUNERAL FAMILIAR - R$5.000,00",
+    "3293": "EZZE - FUNERAL FAMILIAR - R$7.000,00",
+    "3294": "EZZE - FUNERAL INDIVIDUAL HAPVIDA_BECKER_MAXVIDA - R$5.000,00",
+    "3295": "EZZE - FUNERAL INDIVIDUAL - R$3.000,00",
+    "3296": "EZZE - FUNERAL INDIVIDUAL - R$7.000,00",
+    "3297": "EZZE - FUNERAL ESTENDIDO - R$3.000,00",
+    "3298": "EZZE - FUNERAL ESTENDIDO SINBFIR - R$5.000,00",
+    "3299": "EZZE - FUNERAL ESTENDIDO - R$5.000,00",
+    "3305": "EZZE - CESTA CARTAO ALIMENTACAO R$ 450,00 (3X 150,00)",
+    "3307": "EZZE - ASSISTENCIA RESIDENCIAL COMPLETO",
+    "3308": "EZZE - ASSISTENCIA RESIDENCIAL COMPLETO - FORA DE BASE",
+    "3449": "EZZE - ASSISTENCIA RESIDENCIAL SIMPLIFICADO",
+    "3450": "EZZE - ASSISTENCIA RESIDENCIAL SIMPLIFICADO - FORA DE BASE",
+    "4087": "EZZE - ASSISTENCIA RESIDENCIAL EMERGENCIAL - FORA DE BASE",
+    "4094": "EZZE - FUNERAL FAMILIAR HAPVIDA - R$8.000,00",
+    "4117": "EZZE - FUNERAL FAMILIAR - R$10.000,00",
+    "4118": "EZZE - ASSISTENCIA RESIDENCIAL COMPLETO COM LINHA BRANCA",
+    "4119": "EZZE - FUNERAL INDIVIDUAL - R$10.000,00",
+    "4172": "EZZE - FUNERAL FAMILIAR R$ 3.600,00",
+    "4189": "EZZE - FUNERAL INDICADO - CLUBE INFINITY",
+    "4206": "EZZE - MULTIASSISTENCIA - FUNCIONARIOS",
+    "4207": "EZZE - MULTIASSISTENCIA - FUNCIONARIOS - FORA DA BASE",
+    "4230": "EZZE - FUNERAL INDIVIDUAL - R$ 3.500,00",
+    "4256": "EZZE - ASSISTENCIA FUNERAL INDIVIDUAL R$5.500,00",
+    "4257": "EZZE - ASSISTENCIA FUNERAL INDIVIDUAL R$6.000,00",
+    "4258": "EZZE - ASSISTENCIA FUNERAL INDIVIDUAL R$8.000,00",
+    "4259": "EZZE - CESTA NATALIDADE CARTAO 1 CARGA X R$ 500,00",
+    "4260": "EZZE - CESTA NATALIDADE CARTAO 1 CARGA X R$700,00",
+    "4302": "EZZE - ASSISTENCIA RESIDENCIAL - LOJAS LEBES",
+    "4303": "EZZE - ASSISTENCIA RESIDENCIAL - LOJAS LEBES - FORA DE BASE",
+    "4335": "EZZE - ASSISTENCIA FUNERAL INDIVIDUAL HAPVIDA - R$ 8.000,00",
+    "4336": "EZZE - ASSISTENCIA FUNERAL INDIVIDUAL HAPVIDA - R$ 8.000,00 - FORA DA BASE",
+    "4415": "EZZE - ANDIPET - PET PLANO A",
+    "4416": "EZZE - ANDIPET - PET PLANO B",
+    "4422": "EZZE - ANDIPET - PET PLANO A - FORA DA BASE",
+    "4423": "EZZE - ANDIPET - PET PLANO B - FORA DA BASE",
+    "4487": "EZZE - W2 - RESIDENCIAL PLANO BASICO",
+    "4488": "EZZE - W2 - RESIDENCIAL PLANO COMPLETO",
+    "4489": "EZZE - W2 - FUNERAL INDIVIDUAL - R$ 5.000,00",
+    "4490": "EZZE - W2 - ORIENTACAO PSICOLOGICA",
+    "4491": "EZZE - W2 - FUNERAL INDIVIDUAL - R$ 5.000,00 - FORA DA BASE",
+    "4492": "EZZE - W2 - ORIENTACAO PSICOLOGICA - FORA DA BASE",
+    "4493": "EZZE - W2 - RESIDENCIAL PLANO BASICO - FORA DA BASE",
+    "4494": "EZZE - W2 - RESIDENCIAL PLANO COMPLETO - FORA DA BASE",
+    "4534": "EZZE - ASSISTENCIA RESIDENCIAL BASICA",
+    "4535": "EZZE - ASSISTENCIA RESIDENCIAL BASICA - FORA DE BASE",
+    "4580": "EZZE - FUNERAL FAMILIAR - R$2.500,00",
+    "4581": "EZZE - FUNERAL INDIVIDUAL - R$2.500,00",
+    "4582": "EZZE - FUNERAL FAMILIAR - R$4.000,00",
+    "4583": "EZZE - EZZE - FUNERAL INDIVIDUAL - R$4.000,00",
+    "4584": "EZZE - FUNERAL FAMILIAR - R$5.000,00",
+    "4585": "EZZE - FUNERAL INDIVIDUAL - R$5.000,00",
+    "4586": "EZZE - FUNERAL FAMILIAR - R$6.000,00",
+    "4587": "EZZE - FUNERAL INDIVIDUAL - R$6.000,00",
+    "4588": "EZZE - FUNERAL FORA DE BASE",
+    "4592": "EZZE - CESTA CARTAO ALIMENTACAO - FUNERAL - 6 X DE R$ 150,00",
+    "4593": "EZZE - CESTA CARTAO ALIMENTACAO - FUNERAL - 6 X DE R$ 150,00 - FORA DA BASE",
+    "4596": "EZZE - ASSISTENCIA RESIDENCIAL COMPLETO COM LINHA BRANCA - FORA DA BASE",
+    "4601": "EZZE - ASSISTENCIA EMPRESARIAL - PROJETO SINBFIR",
+    "4602": "EZZE - ASSISTENCIA KIT NATALIDADE - PROJETO SINBFIR",
+    "4603": "EZZE - ASSISTENCIA EMPRESARIAL - PROJETO SINBFIR - FORA DA BASE",
+    "4604": "EZZE - ASSISTENCIA KIT NATALIDADE - PROJETO SINBFIR - FORA DA BASE",
+    "4606": "EZZE - FUNERAL FAMILIAR R$ 3.500,00",
+    "4607": "EZZE - CESTA CARTAO ALIMENTACAO- MORTE - 12 X DE R$ 208,34",
+    "4608": "EZZE – BCO GENIAL – PET PLANO EQUILIBRADO",
+    "4609": "EZZE – BCO GENIAL - PET PLANO ROBUSTO",
+    "4610": "EZZE – BCO GENIAL – PET PLANO SOBERANO",
+    "4611": "EZZE – BCO GENIAL – PET FORA DA BASE",
+    "4614": "EZZE – CESTA CARTAO ALIMENTACAO – MORTE – 6 X R$450,00",
+    "4626": "EZZE – CESTA CARTAO ALIMENTACAO – MORTE – 12 X R$166,67",
+    "4636": "EZZE - SOLICITACAO ESPECIAL",
+    "4643": "EZZE - FORTBRASIL - PET - PLANO 1",
+    "4644": "EZZE - FORTBRASIL - PET - PLANO 1 - FORA DE BASE",
+    "4649": "EZZE - CARTAO CESTA BASICA - MORTE - 6 X DE R$ 200,00",
+    "4650": "EZZE - CARTAO CESTA BASICA-MORTE- 6X DE R$ 200,00- FORA BASE",
+    "4680": "EZZE - CESTA CARTAO ALIMENTACAO- MORTE - 12 X DE R$ 300",
+    "4707": "EZZE - CESTA CARTAO ALIMENTACAO- MORTE - 12 X DE R$ 300",
+    "4718": "EZZE - AUTO E MOTO RESTRITO (VINCULADO AO CPF DO SEGURADO)",
+    "4719": "EZZE - AUTO E MOTO RESTRITO (VINCULADO AO CPF DO SEGURADO) - FORA DE BASE",
+    "4720": "EZZE - FUN. INDIVIDUAL R$7000  DECORRENTE DE MORTE ACIDENTAL",
+    "4737": "EZZE - CARTAO CESTA NATALIDADE-01X R$806,00",
+    "4738": "EZZE - CARTAO CESTA NATALIDADE-01X R$806,00 - FORA DE BASE",
+    "4739": "EZZE - FUN. INDIVIDUAL DECORRENTE DE MORTE ACIDENTAL R$7000",
+    "4740": "EZZE - FUN. INDIV, DECOR MORTE ACIDENTAL R$7000-FORA BASE",
+    "4742": "EZZE - FUNERAL FAMILIAR FUNCIONARIOS EZZE - R$5000",
+    "4747": "EZZE - FUN. FAMILIAR FUNCIONARIOS EZZE- R$5000 – FORA BASE",
+    "4760": "EZZE - ASSISTENCIA PESSOAL RESID E PET_MAXVIDA",
+    "4792": "EZZE - ASSISTENCIA FUNERAL FAMILIAR R$ 13.500,00",
+    "4793": "EZZE - ASSIST FUNERAL FAMILIAR R$ 13.500,00 FORA DE BASE",
+    "4794": "EZZE - CESTA BASICA CARTAO 6 X R$ 180,00",
+    "4795": "EZZE - CESTA BASICA CARTAO 6 X R$ 180,00 FORA DE BASE",
+    "4796": "EZZE - ASSISTENCIA PESSOAL RESID E PET MAXVIDA – FORA DE BASE",
+    "4995": "EZZE - ASSISTENCIA FUNERAL FAMILIAR R$ 13.500,00 - SOLICITACAO ESPECIAL",
+    "4996": "EZZE - CESTA BASICA CARTAO 6 X R$ 180,00 - SOLICITACAO ESPECIAL",
+    "5009": "EZZE – CARTAO CESTA ALIMENTACAO – 01 X R$ 600,00",
+    "5010": "EZZE – CARTAO CESTA ALIMENTACAO - 01X R$ 600,00 - FORA DE BASE",
+    "5011": "EZZE – CARTAO CESTA ALIMENTACAO - 01X R$ 600,00 - SOLICITACAO ESPECIAL",
+    "5012": "EZZE - CARTAO CESTA NATALIDADE-01X R$ 523,00",
+    "5013": "EZZE-CARTAO CESTA NATALIDADE-01X R$523,00 - FORA DE BASE",
+    "5014": "EZZE-CARTAO CESTA NATALIDADE-01X R$523,00 - SOLICITACAO ESPECIAL",
+    "5082": "EZZE - CESTA CARTAO ALIMENTACAO - MORTE - 12 X DE R$ 450,00",
+    "5083": "EZZE - CESTA CARTAO ALIMENTACAO - MORTE - 12 X DE R$ 450,00 - FORA DE BASE",
+    "5084": "EZZE - ASSISTENCIA VIAGEM",
+    "5085": "EZZE - ASSISTENCIA VIAGEM - FORA DE BASE",
+    "5086": "EZZE – FUNERAL FAMILIAR – R$10.000,00",
+    "5087": "EZZE – FUNERAL FAMILIAR – R$10.000,00 – FORA DE BASE",
+    "5088": "EZZE – CESTA CARTAO ALIMENTACAO – 1 X R$1.000,00",
+    "5089": "EZZE – CESTA CARTAO ALIMENTACAO – 1 X R$1.000,00 - FORA DE BASE",
+    "5176": "EZZE - ASSISTENCIA EMPRESARIAL + HELP DESK",
+    "5178": "EZZE - ASSISTENCIA EMPRESARIAL + HELP DESK + PEDIDOS ESPECIAIS",
+    "6001": "EZZE – ASSIST PET VIDA INDIVIDUAL",
+    "6002": "EZZE – ASSISTENCIA PET PLUS - PETIT CARE",
+    "6003": "EZZE – ASSISTENCIA PET PLUS - PETIT CARE - FORA DE BASE",
+    "7001": "EZZE - CESTA CARTAO ALIMENTACAO - 01 X R$ 1.200,00",
+    "7002": "EZZE - CESTA CARTAO ALIMENTACAO - 01 X R$ 300,00",
+    "7004": "EZZE – ASSIST BEM ESTAR VOCE E FAMILIA - VIDA INDIVIDUAL",
+    "7005": "EZZE – ASSIST BEM ESTAR VOCE - VIDA INDIVIDUAL",
+    "7006": "EZZE - CARTAO GIFT CESTA NATALIDADE_GIFT CARD - 01X R$ 290,00",
+    "7008": "EZZE - CARTAO GIFT CESTA NATALIDADE_GIFT CARD - 01X R$ 1.000,00",
+    "7009": "EZZE - CARTAO ALIMENTACAO - 12X R$ 210,00",
+    "7010": "EZZE - CARTAO GIFT CESTA NATALIDADE_GIFT CARD - 01X R$ 400,00",
+    "7011": "EZZE - CESTA CARTAO ALIMENTACAO - 1X R$ 2.400,00",
+    "7012": "EZZE - CARTAO NATALIDADE - 01 X R$ 280,00",
+    "8001": "MASTERCARD - ASSISTENCIAS PILOTO - GRUPO MOK",
+    "8002": "GRUPO MOK ASSISTENCIAS PILOTO - LIBERACOES ESPECIAIS",
+    "9366": "ASSISTENCIA FUNERAL FAMILIAR ESTENDIDA – R$ 5.000,00",
+    "9367": "ASSISTENCIA FUNERAL FAMILIAR EXTENSIVA PM – R$ 6.000,00",
+    "9368": "EZZE – ASSISTENCIA CARTAO ALIMENTACAO - 1 X R$ 1.800,00",
+    "9369": "EZZE - CARTAO GIFT CESTA NATALIDADE_GIFT CARD - 01X R$ 600,00",
+    "10100": "ASSISTENCIA 24H PASSEIO ESSENCIAL 500KM",
+    "10200": "ASSISTENCIA 24H PASSEIO PREMIUM 2.000 KM",
+    "10208": "ASSISTENCIA 24H PASSEIO PREMIUM ILIMITADO",
+    "10326": "ASSISTENCIA 24H PASSEIO ESSENCIAL 500KM",
+    "10327": "ASSISTENCIA 24H PASSEIO PREMIUM 2.000KM",
+    "10328": "ASSISTENCIA 24H PICAPE LEVE ESSENCIAL 500KM",
+    "10329": "ASSISTENCIA 24H PICAPE LEVE PREMIUM 2.000 KM",
+    "10331": "ASSISTENCIA 24H PICAPE PESADA CARGA PREMIUM 2.000KM",
+    "10332": "ASSISTENCIA 24H PICAPE PESADA PASSEIO ESSENCIAL 500 KM",
+    "10333": "ASSISTENCIA 24H PICAPE PESADA PASSEIO PREMIUM 2.000 KM",
+    "10334": "ASSISTENCIA 24H mOTO ESSENCIAL 500 KM",
+    "10335": "ASSISTENCIA 24H MOTO PREMIUM 2.000 KM",
+    "10449": "ASSISTENCIA 24H NAO CONTRATADA - NEGAR ATENDIMENTO",
+    "11000": "ASSISTENCIA AUTO MOK_JET OIL",
+    "14100": "ASSISTENCIA 24H PICAPE LEVE ESSENCIAL 500 KM",
+    "14200": "ASSISTENCIA 24H PICAPE LEVE PREMIUM 2.000 KM",
+    "20100": "ASSISTENCIA 24H PICAPE PESADA CARGA ESSENCIAL 500KM",
+    "20200": "ASSISTENCIA 24H PICAPE PESADA CARGA PREMIUM 2.000 KM",
+    "22100": "ASSISTENCIA 24H PICAPE PESADA PASSEIO ESSENCIAL 500 KM",
+    "22200": "ASSISTENCIA 24H PICAPE PESADA PASSEIO PREMIUM 2.000 KM",
+    "30100": "ASSISTENCIA 24H MOTO ESSENCIAL 500 KM",
+    "30200": "ASSISTENCIA 24H MOTO PREMIUM 2.000 KM",
+    "30208": "ASSISTENCIA 24 HORAS MOTO KM ILIMITADO PREMIUM BMW",
+    "30209": "ASSISTENCIA 24 HORAS MOTO PREMIUM BMW_RENOVACOES",
+    "40300": "ASSISTENCIA 24H CAMINHAO LEVE BASICO 300 KM",
+    "40600": "ASSISTENCIA 24H CAMINHAO LEVE COMPLETO 1.000 KM",
+    "8003": "RISK_ASSISTENCIA RESIDENCIAL BASICA – CASA",
+    "8004": "RISK_ASSISTENCIA RESIDENCIAL INTERMEDIARIA – CASA",
+    "8005": "RISK_ASSISTENCIA RESIDENCIAL COMPLETA – CASA",
+    "8006": "RISK_ASSISTENCIA RESIDENCIAL BASICA – APARTAMENTO",
+    "8007": "RISK_ASSISTENCIA RESIDENCIAL INTERMEDIARIA – APARTAMENTO",
+    "8008": "RISK_ASSISTENCIA RESIDENCIAL COMPLETA - APARTAMENTO"
+};
+
+const dbConfig = {
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    server: process.env.DB_SERVER,
+    port: parseInt(process.env.DB_PORT || '1433'),
+    database: process.env.DB_NAME, 
+    options: {
+        encrypt: false,
+        trustServerCertificate: true,
+        connectTimeout: 40000, 
+        requestTimeout: 60000
+    }
+};
+
+let pool = null;
+async function getConnection() {
+    try {
+        if (pool && pool.connected) return pool;
+        pool = await new sql.ConnectionPool(dbConfig).connect();
+        return pool;
+    } catch (err) {
+        console.error('FALHA CONEXÃO BANCO:', err.message);
+        pool = null; return null;
+    }
+}
+
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+app.get('/api/apolices', async (req, res) => {
+    const { policyNumber, clientName, documentNumber, tipoBeneficiario } = req.query;
+    const db = await getConnection();
+    if (!db) return res.status(503).json({ message: 'Erro de conexão com o banco.' });
+
+    try {
+        const request = db.request();
+        let fromClause = '';
+
+        switch (tipoBeneficiario) {
+            case 'automovel':
+                fromClause = `
+                    SELECT 
+                        VeiculoApolice AS id, BeneficiarioNome AS client, BeneficiarioCpfCnpj AS documento, 
+                        VeiculoInicioVigencia AS startDate, VeiculoFimVigencia AS endDate, 
+                        VeiculoPlaca AS Placa, VeiculoChassi AS Chassi, WasDeleted, 
+                        VeiculoPlanosCodigo AS PlanoCod, VeiculoEndosso AS Endosso, 
+                        VeiculoCombustivel AS Comb, VeiculoCor AS Cor, VeiculoItem AS Item, 
+                        VeiculoCodigoFipe AS Fipe, VeiculoAnoFabricacao AS AnoF, 
+                        VeiculoAnoModelo AS AnoM, VeiculoTipo AS TipoV, 'Automovel' AS type,
+                        BeneficiarioLogradouro AS [End], BeneficiarioBairro AS Bairro, 
+                        BeneficiarioCidade AS Cid, BeneficiarioEstado AS Est,
+                        VeiculoMarca AS Marca, VeiculoModelo AS Modelo, TipoApoliceAuto AS Tag
+                    FROM dbo.ClienteBeneficiarioVeiculos`;
+                break;
+            case 'residencial':
+            case 'vida':
+            case 'empresarial':
+                const tableName = tipoBeneficiario.charAt(0).toUpperCase() + tipoBeneficiario.slice(1);
+                fromClause = `
+                    SELECT APOLICE AS id, NOME_SEGURADO AS client, CPF_CNPJ AS documento, 
+                    TRY_CONVERT(DATE, VIGENCIA_INICIAL, 103) AS startDate, TRY_CONVERT(DATE, VIGENCIA_FINAL, 103) AS endDate,
+                    CAST(PLACA AS VARCHAR) AS Placa, NULL AS Chassi, 0 AS WasDeleted, CONTRATO AS PlanoCod, 
+                    NULL AS Endosso, NULL AS Comb, NULL AS Cor, NULL AS Item, NULL AS Fipe,
+                    NULL AS AnoF, ANO AS AnoM, NULL AS TipoV, UPPER('${tipoBeneficiario}') AS type,
+                    ENDERECO AS [End], BAIRRO AS Bairro, CIDADE AS Cid, UF AS Est, MARCA AS Marca, MODELO AS Modelo, NULL AS Tag
+                    FROM dbo.${tableName}`;
+                break;
+            default: return res.status(400).json({ message: "Ramo inválido." });
+        }
+
+        let query = `SELECT * FROM (${fromClause}) AS Combined WHERE 1=1 `;
+        if (policyNumber) { query += ' AND id LIKE @p'; request.input('p', sql.VarChar, `%${policyNumber}%`); }
+        if (clientName) { query += ' AND client LIKE @c'; request.input('c', sql.NVarChar, `%${clientName}%`); }
+        if (documentNumber) { query += ' AND (documento LIKE @d OR Placa LIKE @d OR Chassi LIKE @d)'; request.input('d', sql.VarChar, `%${documentNumber}%`); }
+        
+        query += ' ORDER BY startDate DESC, WasDeleted ASC';
+        const result = await request.query(query);
+
+        res.json(result.recordset.map(r => {
+            const dataFim = r.endDate ? new Date(r.endDate) : null;
+            let statusFinal = r.WasDeleted ? 'CANCELADA' : 'ATIVO';
+            if (!r.WasDeleted && dataFim && dataFim < new Date()) statusFinal = 'VENCIDA';
+
+            return {
+                ...r,
+                status: statusFinal,
+                planoDescricao: clausulasMap[String(r.PlanoCod || '').trim()] || 'Descrição não encontrada'
+            }
+        }));
+    } catch (e) { 
+        console.error("ERRO QUERY:", e.message);
+        res.status(500).json({ message: 'Erro interno.', error: e.message }); 
+    }
+});
+
+app.listen(PORT, () => console.log(`Backend SearchZone rodando na porta ${PORT}`));

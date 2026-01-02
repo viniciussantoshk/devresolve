@@ -1,0 +1,21 @@
+[
+    {
+        "version": "v1.1",
+        "date": "02/01/2025",
+        "changes": [
+            "Agora é possível visualizar o nome e o código do produto nos detalhes da apólice.",
+            "Implementação de etiquetas coloridas para facilitar a identificação: Laranja para 'Auto Individual' e Azul para 'Auto Frota'.",
+            "Novos campos informativos nos detalhes: Nome do Corretor, identificação do cliente (ID Pessoa) e tipo da apólice.",
+            "Melhoria na velocidade de resposta ao realizar buscas por veículos e seguros."
+        ]
+    },
+    {
+        "version": "v1.0",
+        "date": "06/08/2025",
+        "changes": [
+            "Lançamento da plataforma SearchZone.",
+            "Consulta unificada de seguros (Automóvel, Vida, Residencial e Empresarial).",
+            "Busca simplificada por nome, documento, placa ou número de apólice."
+        ]
+    }
+]
