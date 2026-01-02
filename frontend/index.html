@@ -39,6 +39,7 @@
             <h1 class="text-3xl font-bold text-gray-800">Resolve <span class="text-blue-600">SearchZone</span></h1>
             <button onclick="location.reload()" class="text-sm font-bold text-blue-600 hover:underline">Voltar ao Início</button>
         </header>
+
         <main>
             <div class="bg-white p-8 rounded-2xl shadow-lg mb-10 border border-gray-100">
                 <form id="search-form">
@@ -68,6 +69,7 @@
                     </div>
                 </form>
             </div>
+
             <div id="results-container" class="mt-10 bg-white rounded-2xl shadow-xl overflow-hidden hidden">
                 <table class="min-w-full">
                     <thead class="bg-gray-50 border-b">
@@ -147,7 +149,6 @@
         const detailsModal = document.getElementById('details-modal');
         const searchForm = document.getElementById('search-form');
 
-<<<<<<< HEAD
         // Variável global para armazenar os dados e evitar erros de JSON no HTML
         let currentSearchData = [];
 
@@ -155,11 +156,6 @@
             welcomeSection.style.display = 'none'; 
             searchSection.style.display = 'block'; 
         };
-=======
-        let currentSearchData = [];
-
-        document.getElementById('start-search-button').onclick = () => { welcomeSection.style.display = 'none'; searchSection.style.display = 'block'; };
->>>>>>> develop
         
         document.getElementById('news-button').onclick = async () => {
             newsModal.style.display = 'flex';
@@ -178,15 +174,12 @@
             e.preventDefault();
             const tipo = document.getElementById('beneficiary-type').value;
             if (!tipo) { alert('Selecione o Ramo.'); return; }
+            
             try {
                 const params = new URLSearchParams(new FormData(searchForm));
                 const response = await fetch(`/api/apolices?${params}`);
                 const data = await response.json();
-<<<<<<< HEAD
                 currentSearchData = data; // Salva os dados na global
-=======
-                currentSearchData = data; // Armazena na variável global
->>>>>>> develop
                 renderResults(data);
             } catch (err) { alert('Erro na conexão com o servidor.'); }
         };
@@ -195,10 +188,7 @@
             const body = document.getElementById('results-table-body');
             document.getElementById('results-container').classList.remove('hidden');
             body.innerHTML = '';
-<<<<<<< HEAD
             
-=======
->>>>>>> develop
             data.forEach((item, index) => {
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-blue-50 transition';
@@ -227,11 +217,10 @@
             // Lógica das Tags
             const tagContainer = document.getElementById('detail-tag');
             tagContainer.innerHTML = '';
-            const tTag = String(item.Tag || '').toLowerCase();
-            if (tTag.includes('frota')) tagContainer.innerHTML = '<span class="tag-orange">Frota</span>';
-            else if (tTag.includes('individual')) tagContainer.innerHTML = '<span class="tag-blue">Individual</span>';
+            const tApolice = String(item.details.Tag || '').toLowerCase();
+            if (tApolice.includes('frota')) tagContainer.innerHTML = '<span class="tag-orange">Frota</span>';
+            else if (tApolice.includes('individual')) tagContainer.innerHTML = '<span class="tag-blue">Individual</span>';
 
-<<<<<<< HEAD
             // Preenchimento do Modal
             document.getElementById('detail-nome').innerText = item.client || 'N/A';
             document.getElementById('detail-doc').innerText = item.documento || 'N/A';
@@ -251,27 +240,6 @@
             document.getElementById('detail-endosso').innerText = item.details.Endosso || 'N/A';
             document.getElementById('detail-plano-cod').innerText = item.details.PlanoCod || 'N/A';
             document.getElementById('detail-plano-desc').innerText = item.details.planoDescricao || 'Descrição não encontrada';
-=======
-            // Preenchimento do Modal (Acesso direto às propriedades da raiz do item)
-            document.getElementById('detail-nome').innerText = item.client || 'N/A';
-            document.getElementById('detail-doc').innerText = item.documento || 'N/A';
-            document.getElementById('detail-end').innerText = `${item.End || ''}, ${item.Bairro || ''} - ${item.Cid || ''}/${item.Est || ''}`;
-            
-            document.getElementById('detail-placa').innerText = item.Placa || 'N/A';
-            document.getElementById('detail-chassi').innerText = item.Chassi || 'N/A';
-            document.getElementById('detail-modelo').innerText = `${item.Marca || ''} / ${item.Modelo || ''}`;
-            document.getElementById('detail-anos').innerText = `${item.AnoF || 'N/A'} / ${item.AnoM || 'N/A'}`;
-            document.getElementById('detail-tipo').innerText = item.TipoV || 'N/A';
-            document.getElementById('detail-combustivel').innerText = item.Comb || 'N/A';
-            document.getElementById('detail-cor').innerText = item.Cor || 'N/A';
-            document.getElementById('detail-fipe').innerText = item.Fipe || 'N/A';
-            document.getElementById('detail-item').innerText = item.Item || 'N/A';
-            
-            document.getElementById('detail-apolice').innerText = item.id || 'N/A';
-            document.getElementById('detail-endosso').innerText = item.Endosso || 'N/A';
-            document.getElementById('detail-plano-cod').innerText = item.PlanoCod || 'N/A';
-            document.getElementById('detail-plano-desc').innerText = item.planoDescricao || 'Descrição não encontrada';
->>>>>>> develop
             document.getElementById('detail-vigencia').innerText = `${fmtDate(item.startDate)} a ${fmtDate(item.endDate)}`;
             document.getElementById('detail-status-modal').innerText = item.status;
 
@@ -280,17 +248,12 @@
 
         document.getElementById('close-details').onclick = () => detailsModal.style.display = 'none';
         document.getElementById('close-news').onclick = () => newsModal.style.display = 'none';
-<<<<<<< HEAD
         document.getElementById('clear-button').onclick = () => { 
             searchForm.reset(); 
             document.getElementById('results-container').classList.add('hidden'); 
         };
 
         // Fechar modal ao clicar fora
-=======
-        document.getElementById('clear-button').onclick = () => { searchForm.reset(); document.getElementById('results-container').classList.add('hidden'); };
-        
->>>>>>> develop
         window.onclick = (event) => {
             if (event.target == detailsModal) detailsModal.style.display = 'none';
             if (event.target == newsModal) newsModal.style.display = 'none';
